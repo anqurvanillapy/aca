@@ -6,7 +6,7 @@ import sys
 from enum import Enum, auto
 from collections import deque
 
-__VERSION__ = "0.1.1"
+__VERSION__ = "0.1.2"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
@@ -304,7 +304,6 @@ def main():
     except AssertionError:
         usage()
     except SyntaxError as e:
-        raise e
         print("SyntaxError: {}".format(e), file=sys.stderr)
 
 
