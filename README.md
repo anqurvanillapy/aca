@@ -7,7 +7,9 @@ interpreter is currently written in Python.
 
 ## Install
 
-Not on PyPI.  Install it manually with the setup script.
+```bash
+$ pip install acalang
+```
 
 ## Example
 

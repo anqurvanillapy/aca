@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 
-"""Aca interpreter"""
+"""Aca, a functional programming language, and shitty toy.
+
+Full grammar:
+decl    : "let" IDENT "=" expr
+expr    : (factor)+
+factor  : lambda | IDENT | INT | "(" expr ")"
+lambda  : "(" "\\" (IDENT)+ "." (factor)+ ")"
+"""
 
 import sys
 from enum import Enum, auto
 from collections import deque
 
-__VERSION__ = "0.1.2"
+__VERSION__ = "0.1.4"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
@@ -129,14 +136,7 @@ class Lexer:
 
 
 class Interpreter:
-    """Aca parser and interpreter
-
-    Full grammar:
-    decl    : "let" IDENT "=" expr
-    expr    : (factor)+
-    factor  : lambda | IDENT | INT | "(" expr ")"
-    lambda  : "(" "\\" (IDENT)+ "." (factor)+ ")"
-    """
+    """Aca parser and interpreter"""
 
     def __init__(self, lexer):
         self.lexer = lexer

@@ -3,7 +3,7 @@
 """Aca setup script"""
 
 from setuptools import setup, find_packages
-from aca import __VERSION__
+from aca.aca import __VERSION__
 
 with open("README.md", "r") as f:
     LONG_DESCRIPTION = f.read()
@@ -18,8 +18,8 @@ setup(
     author="AnqurVanillapy",
     author_email="anqurvanillapy@gmail.com",
     url="https://github.com/anqurvanillapy/acalang",
-    entry_points={"console_scripts": ["aca=aca:main"]},
-    packages=find_packages(),
+    entry_points={"console_scripts": ["aca=aca.aca:main"]},
+    packages=["aca"],
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
