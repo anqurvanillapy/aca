@@ -6,7 +6,7 @@ import sys
 from enum import Enum, auto
 from collections import deque
 
-__VERSION__ = "0.1.0"
+__VERSION__ = "0.1.1"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
@@ -219,9 +219,10 @@ class Interpreter:
                 self.eat(TkType.LPAREN)
                 if self.cur_tk.type == TkType.LAMBDA:
                     yield self.lamb()
-                val = self.expr()
-                self.eat(TkType.RPAREN)
-                yield val
+                else:
+                    val = self.expr()
+                    self.eat(TkType.RPAREN)
+                    yield val
             else:
                 self.error()
 
@@ -302,6 +303,7 @@ def main():
     except AssertionError:
         usage()
     except SyntaxError as e:
+        raise e
         print("SyntaxError: {}".format(e), file=sys.stderr)
 
 
