@@ -11,15 +11,46 @@ Not on PyPI.  Install it manually with the setup script.
 
 ## Example
 
+1. Command line usage
+
 ```bash
 $ cat foo.aca
 let main =
-    dechurch (\x . x) 3
+    dechurch 3
 $ aca foo.aca
-42
+3
 $ aca foo.aca -S
 (lambda x: dechurch(x))((lambda x: x)((lambda f: lambda x: (f(f(f(x)))))))
 ```
+
+2. Lambda calculus
+
+```
+let main =
+    (\x y f. f x y)
+```
+
+3. Sugar for Church numerals
+
+```
+let main = 0
+```
+
+... is identical to
+
+```
+let main =
+    (\x . x)
+```
+
+4. Builtin function `dechurch` for trying to decoding a natural number
+
+```
+let main =
+    dechurch 42
+```
+
+... will not yield any lambdas but value `42` on the screen
 
 ## Already done
 

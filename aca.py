@@ -12,6 +12,7 @@ __VERSION__ = "0.1.1"
 # 1. Argument issues
 # 2. `use` keyword
 # 3. Comments (single-line and multiline)
+# 4. REPL
 
 
 class TkType(Enum):
@@ -55,7 +56,7 @@ class Token:
 
 
 class Lexer:
-    """Aca lexicl analyzer"""
+    """Aca lexical analyzer"""
 
     def __init__(self, txt):
         self.txt = txt
