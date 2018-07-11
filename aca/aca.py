@@ -15,12 +15,14 @@ use     : "use" IDENT
 import sys
 from enum import Enum, auto
 from collections import deque
+from pkgutil import get_data
 
 __VERSION__ = "0.2.0"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
 # 2. REPL
+# 3. Standard library
 
 
 class TkType(Enum):
@@ -74,11 +76,11 @@ class Token:
 class Lexer:
     """Aca lexical analyzer"""
 
-    def __init__(self, fname, txt):
-        self.txt = txt
+    def __init__(self, fname, src):
+        self.src = src
         self.pos = 0
-        self.cur_char = self.txt[self.pos]
-        self.len = len(self.txt)
+        self.cur_char = self.src[self.pos] if src else None
+        self.len = len(self.src)
         self.fname = fname
 
     def error(self):
@@ -93,7 +95,7 @@ class Lexer:
         """Increment pos and current char"""
         self.pos += 1
         if self.pos < self.len:
-            self.cur_char = self.txt[self.pos]
+            self.cur_char = self.src[self.pos]
         else:
             self.cur_char = None
 
@@ -293,19 +295,23 @@ class Interpreter:
         self.eat(TkType.RPAREN)
         return " ".join(a)
 
+    def include(self, fname, src):
+        """Interruptedly include and parse a file"""
+        old = self.funwind()
+        self.lexer = Lexer(fname, src)
+        self.cur_tk = self.lexer.next_tk()
+        self.parse()
+        self.lexer, self.cur_tk = old
+
     def use(self):
         """Use declarations from other source files"""
         self.eat(TkType.USE)
         fname = "{}.aca".format(self.cur_tk.val)
         self.eat(TkType.IDENT)
         with open(fname, "r") as f:
-            old = self.unwind()
-            self.lexer = Lexer(fname, f.read())
-            self.cur_tk = self.lexer.next_tk()
-            self.parse()
-            self.lexer, self.cur_tk = old
+            self.include(fname, f.read())
 
-    def unwind(self):
+    def funwind(self):
         """Get a backup for source file unwinding"""
         return self.lexer, self.cur_tk
 
@@ -321,6 +327,8 @@ class Interpreter:
 
     def run(self, noeval=False):
         """Start the interpreter"""
+        lib = "stdlib.aca"
+        self.include(lib, get_data(__name__, lib).decode("utf-8"))
         self.parse()
         val = self.ctx["main"]
         if noeval:
@@ -346,8 +354,7 @@ def dechurch(a):
 
 def usage():
     """Usage of aca command"""
-    print("Usage: aca FILENAME [-S]", file=sys.stderr)
-    sys.exit(1)
+    error("Usage: aca FILENAME [-S] [-h|--help] [-v|--version]")
 
 
 def error(msg):
@@ -365,6 +372,11 @@ def main():
             if arg == "-S":
                 assert not noeval
                 noeval = True
+            elif arg in ("-v", "--version"):
+                print("Aca {}".format(__VERSION__))
+                return
+            elif arg in ("-h", "--help"):
+                assert False
             else:
                 assert not fname
                 fname = arg

@@ -1,0 +1,5 @@
+let true =
+    (\x y . x)
+
+let false =
+    (\x y . y)

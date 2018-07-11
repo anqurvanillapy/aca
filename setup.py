@@ -20,6 +20,7 @@ setup(
     url="https://github.com/anqurvanillapy/acalang",
     entry_points={"console_scripts": ["aca=aca.aca:main"]},
     packages=["aca"],
+    package_data={"aca": ["*.aca"]},
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
