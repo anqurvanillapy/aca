@@ -36,23 +36,35 @@ let main =
 
 ```
 let main = 0
-```
 
-... is identical to
-
-```
+-- This is identical to
+{-
 let main =
     (\x . x)
+-}
 ```
 
-4. Builtin function `dechurch` for trying to decoding a natural number
+4. Builtin function `dechurch` for trying to decode a natural number
 
 ```
+-- Yields no lambdas but value `42` on the screen
 let main =
     dechurch 42
 ```
 
-... will not yield any lambdas but value `42` on the screen
+5. Simple module import with `use`
+
+```bash
+$ foo.aca
+let foo = 42
+$ bar.aca
+use foo
+
+let main =
+    dechurch foo
+$ aca bar.aca
+42
+```
 
 ## Already done
 

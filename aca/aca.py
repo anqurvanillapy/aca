@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
 
-"""Aca, a functional programming language, and shitty toy.
+"""
+Aca, a functional programming language, and shitty toy.
 
 Full grammar:
+TOP     : decl | use
 decl    : "let" IDENT "=" expr
 expr    : (factor)+
 factor  : lambda | IDENT | INT | "(" expr ")"
 lambda  : "(" "\\" (IDENT)+ "." (factor)+ ")"
+use     : "use" IDENT
 """
 
 import sys
 from enum import Enum, auto
 from collections import deque
 
-__VERSION__ = "0.1.4"
+__VERSION__ = "0.2.0"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
-# 2. `use` keyword
-# 3. Comments (single-line and multiline)
-# 4. REPL
+# 2. REPL
 
 
 class TkType(Enum):
     """Token type"""
 
     EOF = auto()
+    CMT = auto()
+    LMULCMT = auto()
+    RMULCMT = auto()
     INT = auto()
     IDENT = auto()
     LPAREN = auto()
@@ -35,9 +39,13 @@ class TkType(Enum):
     LET = auto()
     LETREC = auto()
     ASSIGN = auto()
+    USE = auto()
 
 
 RESERVED = {
+    "--": TkType.CMT,
+    "{-": TkType.LMULCMT,
+    "-}": TkType.RMULCMT,
     "\\": TkType.LAMBDA,
     ".": TkType.FNDOT,
     "(": TkType.LPAREN,
@@ -45,6 +53,7 @@ RESERVED = {
     "let": TkType.LET,
     "letrec": TkType.LETREC,
     "=": TkType.ASSIGN,
+    "use": TkType.USE,
 }
 
 
@@ -65,16 +74,19 @@ class Token:
 class Lexer:
     """Aca lexical analyzer"""
 
-    def __init__(self, txt):
+    def __init__(self, fname, txt):
         self.txt = txt
         self.pos = 0
         self.cur_char = self.txt[self.pos]
         self.len = len(self.txt)
+        self.fname = fname
 
     def error(self):
         """Tokenize error"""
         raise ValueError(
-            "invalid character at {}: {}".format(self.pos, self.cur_char)
+            "invalid character `{}' at {} in file `{}'".format(
+                self.pos, self.cur_char, self.fname
+            )
         )
 
     def forward(self):
@@ -102,13 +114,38 @@ class Lexer:
         """Get a word token (a reserved word or identifier)"""
         ret = ""
         while self.cur_char and (
-            self.cur_char.isalnum() or self.cur_char in {"_", "'"}
+            self.cur_char.isalnum() or self.cur_char in ("_", "'")
         ):
             ret += self.cur_char
             self.forward()
         if ret in RESERVED:
             return Token(RESERVED[ret], ret)
         return Token(TkType.IDENT, ret)
+
+    def cmt(self):
+        """Single-line and multiline comment"""
+        if self.cur_char == "-":
+            self.forward()
+            if self.cur_char and self.cur_char == "-":
+                while self.cur_char and self.cur_char != "\n":
+                    self.forward()
+                return
+        elif self.cur_char == "{":
+            if self.tryeats("-"):
+                while not self.tryeats("-}"):
+                    pass
+                return
+        self.error()
+
+    def tryeats(self, s):
+        """Try to match a sequence of characters, namely a string"""
+        for c in s:
+            self.forward()
+            if self.cur_char and self.cur_char == c:
+                continue
+            return False
+        self.forward()
+        return True
 
     def next_tk(self):
         """Tokenizer"""
@@ -119,10 +156,14 @@ class Lexer:
                 self.whitespace()
                 continue
 
+            if c in ("-", "{"):
+                self.cmt()
+                continue
+
             if c.isdigit():
                 return self.number()
 
-            if c.isalpha() or c == "_":
+            if c.isalpha() or c in "_":
                 return self.word()
 
             if c in RESERVED:
@@ -146,7 +187,11 @@ class Interpreter:
 
     def error(self):
         """Parse error"""
-        raise SyntaxError("invalid syntax at {}".format(self.lexer.pos))
+        raise SyntaxError(
+            "invalid syntax at {} in file `{}'".format(
+                self.lexer.pos, self.lexer.fname
+            )
+        )
 
     def eat(self, tktype):
         """Match a token with a specific type"""
@@ -169,19 +214,15 @@ class Interpreter:
 
     def decl(self):
         """Local declaration"""
-        while True:
-            if self.cur_tk.type == TkType.EOF:
-                break
-            self.eat(TkType.LET)
-            var = self.cur_tk.val
-            self.eat(TkType.IDENT)
-            if var in self.ctx:
-                self.error()
-            self.eat(TkType.ASSIGN)
-            val = self.expr()
-            self.ctx[var] = val
-            self.args.clear()
-            yield
+        self.eat(TkType.LET)
+        var = self.cur_tk.val
+        self.eat(TkType.IDENT)
+        if var in self.ctx:
+            self.error()
+        self.eat(TkType.ASSIGN)
+        val = self.expr()
+        self.ctx[var] = val
+        self.args.clear()
 
     def expr(self):
         """Expression"""
@@ -252,10 +293,35 @@ class Interpreter:
         self.eat(TkType.RPAREN)
         return " ".join(a)
 
-    def run(self, noeval=False):
+    def use(self):
+        """Use declarations from other source files"""
+        self.eat(TkType.USE)
+        fname = "{}.aca".format(self.cur_tk.val)
+        self.eat(TkType.IDENT)
+        with open(fname, "r") as f:
+            old = self.unwind()
+            self.lexer = Lexer(fname, f.read())
+            self.cur_tk = self.lexer.next_tk()
+            self.parse()
+            self.lexer, self.cur_tk = old
+
+    def unwind(self):
+        """Get a backup for source file unwinding"""
+        return self.lexer, self.cur_tk
+
+    def parse(self):
         """Start parsing"""
-        for _ in self.decl():
-            pass
+        while self.cur_tk.type != TkType.EOF:
+            if self.cur_tk.type == TkType.LET:
+                self.decl()
+            elif self.cur_tk.type == TkType.USE:
+                self.use()
+            else:
+                self.error()
+
+    def run(self, noeval=False):
+        """Start the interpreter"""
+        self.parse()
         val = self.ctx["main"]
         if noeval:
             print(val)
@@ -284,6 +350,12 @@ def usage():
     sys.exit(1)
 
 
+def error(msg):
+    """Top-level error"""
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
 def main():
     """Start REPL or run the script"""
     noeval = False
@@ -298,13 +370,18 @@ def main():
                 fname = arg
         assert fname
         with open(fname, "r") as f:
-            lexer = Lexer(f.read())
+            lexer = Lexer(fname, f.read())
             interp = Interpreter(lexer)
             interp.run(noeval)
     except AssertionError:
         usage()
     except SyntaxError as e:
-        print("SyntaxError: {}".format(e), file=sys.stderr)
+        raise e
+        error("SyntaxError: {}".format(e))
+    except ValueError as e:
+        error("SyntaxError: {}".format(e))
+    except KeyError:
+        error("Cannot find declaration of `main'")
 
 
 if __name__ == "__main__":
