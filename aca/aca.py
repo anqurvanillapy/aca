@@ -15,14 +15,9 @@ use     : "use" IDENT
 
 import sys
 from enum import Enum, auto
-from collections import deque
 from pkgutil import get_data
 
-__VERSION__ = "0.3.0"
-
-# TODO (before v1.0.0):
-# 1. Argument issues
-# 2. Standard library
+__VERSION__ = "0.4.0"
 
 
 class TkType(Enum):
@@ -191,7 +186,6 @@ class Interpreter:
     def __init__(self, lexer):
         self.lexer = lexer
         self.cur_tk = self.lexer.next_tk()
-        self.args = set()
         self.ctx = {}
 
     def error(self):
@@ -231,11 +225,12 @@ class Interpreter:
         self.eat(TkType.ASSIGN)
         val = self.expr()
         self.ctx[var] = val
-        self.args.clear()
 
-    def expr(self):
+    def expr(self, args=None):
         """Expression"""
-        fg = self.factor()
+        if not args:
+            args = set()
+        fg = self.factor(args)
         val = None
         factors = []
         try:
@@ -251,8 +246,10 @@ class Interpreter:
             val = "{}({})".format(val, fs)
         return val
 
-    def factor(self):
+    def factor(self, args=None):
         """Factor"""
+        if not args:
+            args = set()
         while True:
             tk = self.cur_tk
             if tk.type in (TkType.RPAREN, TkType.LET, TkType.EOF):
@@ -260,47 +257,52 @@ class Interpreter:
             if tk.type == TkType.INT:
                 self.eat(TkType.INT)
                 yield enchurch(int(tk.val))
+                continue
             elif tk.type == TkType.IDENT:
                 self.eat(TkType.IDENT)
                 if tk.val in self.ctx:
                     yield self.ctx[tk.val]
-                elif tk.val in self.args:
-                    yield "({})".format(tk.val)
+                    continue
+                elif tk.val in args:
+                    yield tk.val
+                    continue
             elif tk.type == TkType.LPAREN:
                 self.eat(TkType.LPAREN)
                 if self.cur_tk.type == TkType.LAMBDA:
-                    yield self.lamb()
+                    yield self.lamb(args)
+                    continue
                 else:
-                    val = self.expr()
+                    val = self.expr(args)
                     self.eat(TkType.RPAREN)
-                    yield val
-            else:
-                self.error()
+                    yield "({})".format(val)
+                    continue
+            self.error()
 
-    def lamb(self):
+    def lamb(self, args=None):
         """Lambda calculus"""
-        a = deque()
+        if not args:
+            args = set()
+        a = []
         depth = 0
         self.eat(TkType.LAMBDA)
         while True:
             tk = self.cur_tk
-            if tk.type == TkType.IDENT and tk.val not in self.args:
+            if tk.type == TkType.IDENT and tk.val not in args:
                 self.eat(TkType.IDENT)
-                self.args.add(tk.val)
-                a.appendleft("(lambda {}:".format(tk.val))
+                args.add(tk.val)
+                a.append("(lambda {}:".format(tk.val))
                 depth += 1
                 continue
             elif tk.type == TkType.FNDOT:
                 self.eat(TkType.FNDOT)
                 break
-            else:
-                self.error()
-        for t in self.factor():
+            self.error()
+        for t in self.factor(args):
             a.append(t)
         for _ in range(depth):
-            a.append(")" * depth)
+            a.append(")")
         self.eat(TkType.RPAREN)
-        return " ".join(a)
+        return "".join(a)
 
     def include(self, fname, src):
         """Interruptedly include and parse a file"""
@@ -370,12 +372,17 @@ class Interpreter:
                 print("SyntaxError: {}".format(e))
             except ValueError as e:
                 print("SyntaxError: {}".format(e))
+            except TypeError as e:
+                print("TypeError: {}".format(e))
             except KeyError as e:
                 print(
                     "KeyError: cannot find declaration of `{}'".format(
                         str(e)[1:-1]
                     )
                 )
+            except KeyboardInterrupt:
+                print()
+                continue
             except EOFError:
                 break
 
@@ -383,15 +390,11 @@ class Interpreter:
 def enchurch(n):
     """Encode Church numerals"""
     assert n >= 0
-    if n:
-        return "(lambda f: lambda x: {}(x){})".format("(f" * n, ")" * n)
-    return "(lambda x: x)"
+    return "(lambda f:(lambda x:{}(x){}))".format("(f" * n, ")" * n)
 
 
 def dechurch(a):
     """Decode Church numerals"""
-    if a(0) == 0:
-        return 0
     return a(lambda x: x + 1)(0)
 
 

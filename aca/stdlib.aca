@@ -1,5 +1,18 @@
+{- Boolean -}
+
 let true =
     (\x y . x)
 
 let false =
     (\x y . y)
+
+let if =
+    (\p x y . p x y)
+
+{- Natural number -}
+
+let zero =
+    (\f x . x)
+
+let succ =
+    (\n f x . f ((n f) x))

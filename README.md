@@ -79,7 +79,7 @@ $ aca bar.aca
     + Untyped lambda calculus
     + Standard library for basic datatypes and operations
 - `v1.0.0`:
-    + Builtin binary operators
+    + Simply typed lambda calculus
 - `v2.0.0`:
     + System F
 
