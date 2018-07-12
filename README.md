@@ -19,10 +19,15 @@ $ pip install acalang
 $ cat foo.aca
 let main =
     dechurch 3
+
 $ aca foo.aca
 3
-$ aca foo.aca -S
+
+$ aca foo.aca -S    # `noeval' mode
 (lambda x: dechurch(x))((lambda x: x)((lambda f: lambda x: (f(f(f(x)))))))
+
+$ aca       # REPL
+$ aca -S    # REPL with `noeval'
 ```
 
 2. Lambda calculus
@@ -57,20 +62,16 @@ let main =
 ```bash
 $ foo.aca
 let foo = 42
+
 $ bar.aca
 use foo
 
 let main =
     dechurch foo
+
 $ aca bar.aca
 42
 ```
-
-## Already done
-
-* Lambda calculus
-* Encoding and decoding of Church numerals
-* Local declarations
 
 ## Goals
 

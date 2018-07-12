@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=W0123, C0103, C0330
 
 """
 Aca, a functional programming language, and shitty toy.
@@ -17,12 +18,11 @@ from enum import Enum, auto
 from collections import deque
 from pkgutil import get_data
 
-__VERSION__ = "0.2.0"
+__VERSION__ = "0.3.0"
 
 # TODO (before v1.0.0):
 # 1. Argument issues
-# 2. REPL
-# 3. Standard library
+# 2. Standard library
 
 
 class TkType(Enum):
@@ -76,12 +76,19 @@ class Token:
 class Lexer:
     """Aca lexical analyzer"""
 
-    def __init__(self, fname, src):
+    def __init__(self, fname="", src=""):
         self.src = src
         self.pos = 0
         self.cur_char = self.src[self.pos] if src else None
         self.len = len(self.src)
         self.fname = fname
+
+    def fromstdin(self):
+        """Read source from stdin once"""
+        self.src = input()
+        self.pos = 0
+        self.cur_char = self.src[self.pos] if self.src else None
+        self.len = len(self.src)
 
     def error(self):
         """Tokenize error"""
@@ -185,7 +192,7 @@ class Interpreter:
         self.lexer = lexer
         self.cur_tk = self.lexer.next_tk()
         self.args = set()
-        self.ctx = {"dechurch": "(lambda x: dechurch(x))"}
+        self.ctx = {}
 
     def error(self):
         """Parse error"""
@@ -325,16 +332,52 @@ class Interpreter:
             else:
                 self.error()
 
-    def run(self, noeval=False):
-        """Start the interpreter"""
+    def stdlib(self):
+        """Init stdlib"""
+        self.ctx["dechurch"] = "(lambda x: dechurch(x))"
         lib = "stdlib.aca"
         self.include(lib, get_data(__name__, lib).decode("utf-8"))
+
+    def run(self, noeval=False):
+        """Start the interpreter"""
+        self.stdlib()
         self.parse()
         val = self.ctx["main"]
+        print(val if noeval else eval(val))
+
+    def repl(self, noeval=False):
+        """Start the REPL"""
+        version()
         if noeval:
-            print(val)
-        else:
-            print(eval(val))
+            print("(`noeval' mode is on)")
+        self.stdlib()
+        n = 1
+        while True:
+            try:
+                self.lexer.fname = "<stdin> #{}".format(n)
+                print("> ", end="")
+                self.lexer.fromstdin()
+                self.cur_tk = self.lexer.next_tk()
+                if self.cur_tk.type == TkType.IDENT:
+                    val = self.ctx[self.cur_tk.val]
+                    self.cur_tk = self.lexer.next_tk()
+                    self.eat(TkType.EOF)
+                    print(val if noeval else eval(val))
+                else:
+                    self.parse()
+                n += 1
+            except SyntaxError as e:
+                print("SyntaxError: {}".format(e))
+            except ValueError as e:
+                print("SyntaxError: {}".format(e))
+            except KeyError as e:
+                print(
+                    "KeyError: cannot find declaration of `{}'".format(
+                        str(e)[1:-1]
+                    )
+                )
+            except EOFError:
+                break
 
 
 def enchurch(n):
@@ -363,6 +406,11 @@ def error(msg):
     sys.exit(1)
 
 
+def version():
+    """Print version"""
+    print("Aca {}".format(__VERSION__))
+
+
 def main():
     """Start REPL or run the script"""
     noeval = False
@@ -373,27 +421,30 @@ def main():
                 assert not noeval
                 noeval = True
             elif arg in ("-v", "--version"):
-                print("Aca {}".format(__VERSION__))
+                version()
                 return
             elif arg in ("-h", "--help"):
                 assert False
             else:
                 assert not fname
                 fname = arg
-        assert fname
-        with open(fname, "r") as f:
-            lexer = Lexer(fname, f.read())
+        if fname:
+            with open(fname, "r") as f:
+                lexer = Lexer(fname, f.read())
+                interp = Interpreter(lexer)
+                interp.run(noeval)
+        else:
+            lexer = Lexer("<stdin>")
             interp = Interpreter(lexer)
-            interp.run(noeval)
+            interp.repl(noeval)
     except AssertionError:
         usage()
     except SyntaxError as e:
-        raise e
         error("SyntaxError: {}".format(e))
     except ValueError as e:
         error("SyntaxError: {}".format(e))
-    except KeyError:
-        error("Cannot find declaration of `main'")
+    except KeyError as e:
+        error("KeyError: cannot find declaration of `{}'".format(str(e)[1:-1]))
 
 
 if __name__ == "__main__":
