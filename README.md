@@ -37,7 +37,16 @@ let main =
     (\x y f. f x y)
 ```
 
-3. Sugar for Church numerals
+3. Standard library for basic datatypes
+
+```
+let a = zero
+let b = succ zero
+let main = dechurch b
+-- 1
+```
+
+4. Sugar for Church numerals
 
 ```
 let main = 0
@@ -49,7 +58,7 @@ let main =
 -}
 ```
 
-4. Builtin function `dechurch` for trying to decode a natural number
+5. Builtin function `dechurch` for trying to decode a natural number
 
 ```
 -- Yields no lambdas but value `42` on the screen
@@ -57,7 +66,7 @@ let main =
     dechurch 42
 ```
 
-5. Simple module import with `use`
+6. Simple module import with `use`
 
 ```bash
 $ foo.aca
@@ -77,7 +86,6 @@ $ aca bar.aca
 
 - Before `v1.0.0`:
     + Untyped lambda calculus
-    + Standard library for basic datatypes and operations
 - `v1.0.0`:
     + Simply typed lambda calculus
 - `v2.0.0`:
