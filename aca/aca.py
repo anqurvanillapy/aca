@@ -17,7 +17,7 @@ import sys
 from enum import Enum, auto
 from pkgutil import get_data
 
-__VERSION__ = "0.4.0"
+__VERSION__ = "0.4.1"
 
 
 class TkType(Enum):
@@ -239,11 +239,7 @@ class Interpreter:
             self.error()
         for f in fg:
             factors.append(f)
-        if factors:
-            fs = factors.pop()
-            while factors:
-                fs = "{}({})".format(factors.pop(), fs)
-            val = "{}({})".format(val, fs)
+        val = "{}{}".format(val, "".join(factors))
         return val
 
     def factor(self, args=None):
@@ -264,7 +260,7 @@ class Interpreter:
                     yield self.ctx[tk.val]
                     continue
                 elif tk.val in args:
-                    yield tk.val
+                    yield "({})".format(tk.val)
                     continue
             elif tk.type == TkType.LPAREN:
                 self.eat(TkType.LPAREN)

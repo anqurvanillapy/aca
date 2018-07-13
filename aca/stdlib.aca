@@ -15,4 +15,4 @@ let zero =
     (\f x . x)
 
 let succ =
-    (\n f x . f ((n f) x))
+    (\n f x . f (n f x))
