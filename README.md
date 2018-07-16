@@ -58,12 +58,20 @@ let main =
 -}
 ```
 
-5. Builtin function `dechurch` for trying to decode a natural number
+5. Special builtin functions for debugging (decoded into Python value)
 
 ```
--- Yields no lambdas but value `42` on the screen
 let main =
     dechurch 42
+-- Output: 42
+
+let main =
+    debool true
+-- Output: True
+
+let main =
+    dereal (neg (u2i 42))
+-- Output: -42
 ```
 
 6. Simple module import with `use`

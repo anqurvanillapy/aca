@@ -15,9 +15,10 @@ use     : "use" IDENT
 
 import sys
 from enum import Enum, auto
+from functools import reduce
 from pkgutil import get_data
 
-__VERSION__ = "0.4.1"
+__VERSION__ = "0.5.0"
 
 
 class TkType(Enum):
@@ -210,7 +211,7 @@ class Interpreter:
         else:
             self.error()
 
-    def eatseq(self, types):
+    def eatseq(self, *types):
         """Match some tokens sequentially with specific types"""
         for t in types:
             self.eat(t)
@@ -219,10 +220,7 @@ class Interpreter:
         """Local declaration"""
         self.eat(TkType.LET)
         var = self.cur_tk.val
-        self.eat(TkType.IDENT)
-        if var in self.ctx:
-            self.error()
-        self.eat(TkType.ASSIGN)
+        self.eatseq(TkType.IDENT, TkType.ASSIGN)
         val = self.expr()
         self.ctx[var] = val
 
@@ -332,7 +330,13 @@ class Interpreter:
 
     def stdlib(self):
         """Init stdlib"""
-        self.ctx["dechurch"] = "(lambda x: dechurch(x))"
+        self.ctx.update(
+            {
+                "dechurch": "(lambda x: dechurch(x))",
+                "debool": "(lambda x: debool(x))",
+                "dereal": "(lambda x: dereal(x))",
+            }
+        )
         lib = "stdlib.aca"
         self.include(lib, get_data(__name__, lib).decode("utf-8"))
 
@@ -392,6 +396,18 @@ def enchurch(n):
 def dechurch(a):
     """Decode Church numerals"""
     return a(lambda x: x + 1)(0)
+
+
+def debool(p):
+    """Boolean function to Python `bool` value"""
+    return p(True)(False)
+
+
+def dereal(p):
+    """Decode a real number"""
+    tr = lambda x: lambda _: x
+    fl = lambda _: lambda y: y
+    return reduce(lambda x, y: x - y, map(lambda f: dechurch(p(f)), [tr, fl]))
 
 
 def usage():

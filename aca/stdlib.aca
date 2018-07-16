@@ -1,4 +1,4 @@
-{- Boolean -}
+{- Booleans -}
 
 let true =
     (\x y . x)
@@ -9,10 +9,71 @@ let false =
 let if =
     (\p x y . p x y)
 
-{- Natural number -}
+let and =
+    (\p q . if p q false)
+
+let or =
+    (\p q . if p true q)
+
+let not =
+    (\p . if p false true)
+
+let xor =
+    (\a b . a (not b) b)
+
+{- Natural numbers -}
 
 let zero =
     (\f x . x)
 
 let succ =
     (\n f x . f (n f x))
+
+let isZero =
+    (\n . n (\x . false) true)
+
+let add =
+    (\m n f x . m f (n f x))
+
+let mul =
+    (\m n f x . m (n f) x)
+
+let exp =
+    (\m n . n m)
+
+let pred =
+    (\n f x . n (\g h . h (g f)) (\u . x) (\v . v))
+
+let monus =
+    (\m n . (n pred) m)
+
+let le =
+    (\m n . isZero (monus m n))
+
+let eq =
+    (\m n . and (le m n) (le n m))
+
+{- Ordered pairs -}
+
+let pair =
+    (\x y f . f x y)
+
+let fst =
+    (\p . p true)
+
+let snd =
+    (\p . p false)
+
+{- Real numbers -}
+
+let u2i =
+    (\n . pair n 0)
+
+let neg =
+    (\n . pair (snd n) (fst n))
+
+let addi =
+    (\m n . pair (add (fst m) (fst n)) (add (snd m) (snd n)))
+
+let subi =
+    (\m n . (addi m (neg n)))
